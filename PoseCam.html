@@ -1,0 +1,685 @@
+<!-- PoseCam.html — 📷 Pose Party camera test (plan 11j step S1). Works inside the Apps Script app (route posecam) AND as its own page (plan B, e.g. GitHub Pages). No scriptlets on purpose. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pose Party · Camera test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#170f3a; --bg2:#22175a; --card:#2b1f6b; --panel:#352a7c; --ink:#fff7fb; --ink-soft:#c9bff2;
+  --pink:#ff4fa3; --mint:#3ef0c0; --sun:#ffd23f; --sky:#59c8ff; --bad:#ff6b6b; --ok:#3ef0a0;
+  --safe-b:max(18px, calc(env(safe-area-inset-bottom) + 12px));
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(1200px 600px at 20% -10%,#3b2391 0,transparent 60%),radial-gradient(900px 500px at 110% 10%,#5a1d6e 0,transparent 55%),var(--bg);
+  background-attachment:fixed;color:var(--ink);font:500 16px/1.35 'Baloo 2',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0}
+.wrap{max-width:1180px;margin:0 auto;padding:12px 16px var(--safe-b)}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+header h1{margin:0;font-size:clamp(20px,4.6vw,30px);font-weight:800;letter-spacing:.3px;
+  background:linear-gradient(90deg,var(--sun),var(--pink),var(--sky));-webkit-background-clip:text;background-clip:text;color:transparent}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--card);border:1px solid #ffffff22;border-radius:999px;padding:2px 10px;font-size:13px;white-space:nowrap}
+.chip.good{border-color:var(--ok);color:var(--ok)} .chip.bad{border-color:var(--bad);color:var(--bad)}
+.main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr);gap:14px;align-items:start}
+.main>*{min-width:0}
+@media (min-width:760px){.main>div:first-child{position:sticky;top:12px}}
+@media (max-width:759px){.main{grid-template-columns:minmax(0,1fr)}}
+@media (max-height:500px) and (orientation:landscape){.main{grid-template-columns:minmax(0,1fr) minmax(280px,1fr)} .stage{max-height:calc(100vh - 80px)}}
+.stage{position:relative;background:#0b0720;border-radius:18px;overflow:hidden;aspect-ratio:4/3;border:2px solid #ffffff1a;box-shadow:0 10px 40px #0008}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.stage video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.ov{position:absolute;left:0;right:0;display:flex;justify-content:center;pointer-events:none;padding:8px}
+.ov.top{top:0} .ov.mid{top:50%;transform:translateY(-50%)} .ov.bot{bottom:0}
+.bubble{background:#170f3add;border:2px solid var(--sun);border-radius:14px;padding:6px 14px;font-weight:700;text-align:center;max-width:92%}
+.big{font-size:clamp(46px,14vw,110px);font-weight:800;text-shadow:0 4px 0 #0006,0 0 30px var(--pink)}
+.pct{position:absolute;right:10px;top:10px;background:#170f3acc;border-radius:14px;padding:4px 12px;font-size:clamp(22px,6vw,40px);font-weight:800;border:2px solid var(--mint)}
+.pct.hide{display:none}
+.target{position:absolute;left:10px;top:10px;width:clamp(70px,18%,130px);aspect-ratio:3/4;background:#170f3acc;border-radius:12px;border:2px solid var(--pink)}
+.target.hide,.hide{display:none!important}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px;color:var(--ink-soft)}
+.empty .cam{font-size:64px;filter:none;text-shadow:0 0 24px var(--pink)}
+.panel{display:flex;flex-direction:column;gap:10px}
+.steps{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.steps::-webkit-scrollbar{display:none}
+.st{flex:0 0 auto;min-height:40px;background:var(--card);border-radius:12px;padding:4px 12px;font-size:14px;border:2px solid transparent;opacity:.75}
+.st.on{border-color:var(--sun);opacity:1} .st.done{border-color:var(--ok);opacity:1}
+.st.done::after{content:' ✓';color:var(--ok)}
+.card{background:var(--card);border-radius:18px;padding:14px;border:1px solid #ffffff18}
+.card h2{margin:0 0 6px;font-size:20px}
+.card p{margin:4px 0;color:var(--ink-soft)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:8px 18px;border-radius:14px;font-weight:800;font-size:17px;
+  background:linear-gradient(180deg,#ff6bb5,#e23d8d);box-shadow:0 4px 0 #9b1d5a;transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #9b1d5a}
+.btn.alt{background:linear-gradient(180deg,#4fd9ff,#2a9fd6);box-shadow:0 4px 0 #17648c}
+.btn.ghost{background:var(--panel);box-shadow:0 4px 0 #1a1247}
+.btn.go{background:linear-gradient(180deg,#5cf5c8,#22c89a);box-shadow:0 4px 0 #11785c;color:#0d2a22}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.checks{list-style:none;margin:6px 0;padding:0;display:grid;gap:4px}
+.checks li{display:flex;gap:8px;align-items:center;background:var(--panel);border-radius:10px;padding:4px 10px}
+.checks li .ic{width:24px;text-align:center}
+.checks li.ok{outline:2px solid #3ef0a055}
+.result{border-radius:12px;padding:8px 12px;margin-top:8px;font-weight:700}
+.result.good{background:#0f4a3a;color:#bfffe9} .result.bad{background:#5a1d2c;color:#ffd5dc} .result.info{background:var(--panel)}
+.pick{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pk{background:var(--panel);border-radius:12px;padding:6px 12px;border:2px solid transparent;min-height:42px;transform:translateZ(0)}
+.pk.on{border-color:var(--sun);background:linear-gradient(180deg,#ff6bb5,#e23d8d);color:#fff}
+.pk.on::after{content:' ✓'}
+.ring{--p:0;width:58px;height:58px;border-radius:50%;background:conic-gradient(var(--mint) calc(var(--p)*1turn),#ffffff22 0);display:grid;place-items:center;flex:0 0 auto}
+.ring::before{content:'';width:44px;height:44px;border-radius:50%;background:var(--card);grid-area:1/1}
+.ring span{grid-area:1/1;font-weight:800;font-size:15px}
+.meters{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.meter{background:var(--panel);border-radius:10px;padding:4px 8px;text-align:center}
+.meter b{display:block;font-size:20px}
+.meter small{color:var(--ink-soft);font-size:12px}
+.strip{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:4px}
+.strip img{height:84px;border-radius:8px;border:2px solid var(--sun);flex:0 0 auto}
+.stripimg{max-width:100%;border-radius:12px;margin-top:8px;display:block;-webkit-touch-callout:default}
+table.rep{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+table.rep td{padding:3px 6px;border-bottom:1px solid #ffffff14;vertical-align:top}
+table.rep td:first-child{color:var(--ink-soft);white-space:nowrap}
+textarea.rep{width:100%;height:120px;margin-top:8px;background:#0b0720;color:var(--ink);border-radius:10px;border:1px solid #ffffff33;font:12px/1.3 ui-monospace,monospace}
+.note{font-size:13px;color:var(--ink-soft)}
+/* loader (own icon + animation for this page) */
+.ldr{position:fixed;inset:0;background:#0b0720cc;display:none;align-items:center;justify-content:center;z-index:50}
+.ldr.on{display:flex}
+.ldr .box{background:var(--card);border-radius:20px;padding:20px 26px;text-align:center;border:2px solid var(--pink);max-width:86vw}
+.ldr .ico{font-size:52px;display:inline-block;animation:pp-pop 1s ease-in-out infinite}
+.ldr .bar{height:8px;background:#ffffff22;border-radius:9px;margin-top:10px;overflow:hidden}
+.ldr .bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,var(--sun),var(--pink));animation:pp-slide 1.2s ease-in-out infinite}
+@keyframes pp-pop{0%,100%{transform:scale(1) rotate(-6deg)}50%{transform:scale(1.18) rotate(6deg)}}
+@keyframes pp-slide{0%{transform:translateX(-110%)}100%{transform:translateX(360%)}}
+@keyframes pp-flash{0%{opacity:.95}100%{opacity:0}}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.go{animation:pp-flash .45s ease-out}
+.toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 8px);transform:translateX(-50%) translateY(30px);background:var(--panel);border:2px solid var(--mint);
+  border-radius:14px;padding:8px 16px;font-weight:700;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📷 Pose Party · Camera test</h1>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="main">
+    <div>
+      <div class="stage" id="stage">
+        <video id="vid" playsinline muted autoplay></video>
+        <canvas id="cv"></canvas>
+        <div class="flash" id="flash"></div>
+        <canvas class="target hide" id="tgt" width="120" height="160"></canvas>
+        <div class="pct hide" id="pct">0%</div>
+        <div class="ov top hide" id="ovTop"><div class="bubble" id="ovTopTxt"></div></div>
+        <div class="ov mid hide" id="ovMid"><div class="big" id="ovMidTxt"></div></div>
+        <div class="ov bot hide" id="ovBot"><div class="bubble" id="ovBotTxt"></div></div>
+        <div class="empty" id="empty"><div class="cam">📷</div><div>The camera picture shows here.<br>Nothing is recorded or sent anywhere.</div></div>
+      </div>
+      <div class="meters">
+        <div class="meter"><b id="mFps">–</b><small>pictures / sec</small></div>
+        <div class="meter"><b id="mPeople">–</b><small>people seen</small></div>
+        <div class="meter"><b id="mStill">–</b><small>🗿 still-meter</small></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="steps" id="steps"></div>
+
+      <!-- 1 camera -->
+      <section class="card" data-step="cam">
+        <h2>1 · 📷 Turn on the camera</h2>
+        <p>Your browser will ask if this page may use the camera — tap <b>Allow</b>.</p>
+        <div class="pick" id="facePick">
+          <button class="pk on" data-face="user">🤳 Front camera</button>
+          <button class="pk" data-face="environment">📸 Back camera</button>
+        </div>
+        <div class="row"><button class="btn" id="btnCam">📷 Turn on camera</button></div>
+        <div id="camRes"></div>
+      </section>
+
+      <!-- 2 detector -->
+      <section class="card hide" data-step="det">
+        <h2>2 · 🕺 Pose finder</h2>
+        <p>Loads the body-finder (about 6 MB the first time). It runs on this device only.</p>
+        <div class="row"><button class="btn" id="btnDet">🕺 Load pose finder</button></div>
+        <div id="detRes"></div>
+      </section>
+
+      <!-- 3 fit check -->
+      <section class="card hide" data-step="fit">
+        <h2>3 · 🧍 Fit in the picture</h2>
+        <p id="fitHelp">Stand back until your whole body — head to feet — is in the picture.</p>
+        <ul class="checks" id="fitChecks"></ul>
+        <div class="pick" id="modePick">
+          <button class="pk on" data-mode="full">🧍 Whole body</button>
+          <button class="pk" data-mode="upper">🙋 Upper body only (small room)</button>
+        </div>
+        <div id="fitRes"></div>
+      </section>
+
+      <!-- 4 star calibration -->
+      <section class="card hide" data-step="star">
+        <h2>4 · ⭐ Make a star!</h2>
+        <p>Arms up and out, feet apart — hold it for 2 seconds so the game learns your size.</p>
+        <div class="row" style="align-items:center"><div class="ring" id="starRing"><span id="starTxt">0%</span></div>
+          <button class="btn ghost" id="btnStarSkip">Skip</button></div>
+        <div id="starRes"></div>
+      </section>
+
+      <!-- 5 pose test -->
+      <section class="card hide" data-step="pose">
+        <h2>5 · 🎯 Pose test</h2>
+        <p>Copy the little picture. Hold it and watch the %.</p>
+        <div class="pick" id="posePick"></div>
+        <div class="pick" id="strictPick">
+          <button class="pk on" data-strict="rough">🙂 Rough match (Basic–Intermediate)</button>
+          <button class="pk" data-strict="close">🧐 Close match (Hard+)</button>
+        </div>
+        <div class="row"><button class="btn alt" id="btnCap">📸 3-2-1 capture</button></div>
+        <div id="poseRes"></div>
+        <div class="strip" id="strip"></div>
+      </section>
+
+      <!-- 6 photo + report -->
+      <section class="card hide" data-step="rep">
+        <h2>6 · 🎞️ Photo strip + report</h2>
+        <p>Test that a photo can be downloaded. Photos stay on this device only.</p>
+        <div class="row"><button class="btn" id="btnDl">⬇️ Download test photo</button></div>
+        <div class="row hide" id="dlAsk"><span style="align-self:center">Did a photo save?</span>
+          <button class="btn go" id="dlYes">✅ Yes</button><button class="btn ghost" id="dlNo">❌ No</button></div>
+        <img class="stripimg hide" id="stripImg" alt="Photo strip — press and hold to save on iPad / iPhone">
+        <p class="note hide" id="stripTip">iPad / iPhone: press and hold the picture → “Save to Photos”.</p>
+        <table class="rep" id="repTable"></table>
+        <div class="row">
+          <button class="btn alt" id="btnCopy">📋 Copy report</button>
+          <button class="btn hide" id="btnSend">📨 Send report</button>
+        </div>
+        <textarea class="rep hide" id="repText" readonly></textarea>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="ldr" id="ldr"><div class="box"><div class="ico" id="ldrIco">📷</div><div id="ldrTxt">Loading…</div><div class="bar"><i></i></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ Pose Party · camera test ============ */
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const LIB = window.PP_LIB || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21';
+const MODEL = window.PP_MODEL || 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+
+/* ---------- where are we? ---------- */
+const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+const inApp = typeof google !== 'undefined' && google.script && google.script.run;
+function deviceInfo(){
+  const ua = navigator.userAgent || '';
+  let dev = 'Computer';
+  if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) dev = 'iPad';
+  else if (/iPhone/.test(ua)) dev = 'iPhone';
+  else if (/Android/.test(ua)) dev = /Mobile/.test(ua) ? 'Android phone' : 'Android tablet';
+  else if (/Windows/.test(ua)) dev = 'Windows PC';
+  else if (/Macintosh/.test(ua)) dev = 'Mac';
+  let br = 'Browser';
+  if (/Edg\//.test(ua)) br = 'Edge'; else if (/SamsungBrowser/.test(ua)) br = 'Samsung Internet';
+  else if (/CriOS|Chrome\//.test(ua)) br = 'Chrome'; else if (/FxiOS|Firefox\//.test(ua)) br = 'Firefox';
+  else if (/Safari\//.test(ua)) br = 'Safari';
+  const m = ua.match(/(?:Chrome|CriOS|Version|Firefox|FxiOS|Edg)\/(\d+)/);
+  return {dev, br: br + (m ? ' ' + m[1] : ''), w: innerWidth, h: innerHeight};
+}
+function policyCamera(){
+  try {
+    const p = document.permissionsPolicy || document.featurePolicy;
+    if (p && p.allowsFeature) return p.allowsFeature('camera') ? 'allowed' : 'blocked';
+  } catch (e) {}
+  return 'unknown';
+}
+const D = deviceInfo();
+const R = { // the report
+  where: inApp ? 'Inside the app' : (inFrame ? 'Inside a frame' : 'Own page'),
+  device: D.dev, browser: D.br, screen: D.w + '×' + D.h,
+  secure: window.isSecureContext ? 'yes' : 'NO', framePolicy: policyCamera(),
+  camera: 'not tried', cameraError: '', video: '', detector: 'not loaded', detectorMs: '', delegate: '',
+  fps: '', detectMs: '', peopleMax: 0, fit: '', bodyMode: 'full', star: '', poses: {}, capture: '', download: 'not tried', still: ''
+};
+let PLAYER = '';
+function readPlayer(){
+  try { const q = new URLSearchParams(location.search); if (q.get('player')) PLAYER = q.get('player'); } catch (e) {}
+  if (inApp && google.script.url) {
+    try { google.script.url.getLocation(loc => { if (loc && loc.parameter && loc.parameter.player) { PLAYER = loc.parameter.player; chips(); } }); } catch (e) {}
+  }
+}
+function chips(){
+  const c = [];
+  c.push(`<span class="chip">${R.where === 'Own page' ? '🌐' : '🏠'} ${R.where}</span>`);
+  c.push(`<span class="chip">${R.device} · ${R.browser}</span>`);
+  if (R.framePolicy !== 'unknown') c.push(`<span class="chip ${R.framePolicy === 'allowed' ? 'good' : 'bad'}">Frame camera: ${R.framePolicy}</span>`);
+  if (R.secure !== 'yes') c.push(`<span class="chip bad">Not https</span>`);
+  if (PLAYER) c.push(`<span class="chip">🙂 ${esc(PLAYER)}</span>`);
+  $('chips').innerHTML = c.join('');
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+
+/* ---------- small UI helpers ---------- */
+function busy(on, txt, ico){ $('ldr').classList.toggle('on', !!on); if (txt) $('ldrTxt').textContent = txt; if (ico) $('ldrIco').textContent = ico; }
+let toastT = 0;
+function toast(t){ const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('on'), 2200); }
+function res(id, cls, html){ $(id).innerHTML = html ? `<div class="result ${cls}">${html}</div>` : ''; }
+function ov(where, txt){ const box = $('ov' + where), t = $('ov' + where + 'Txt'); if (!txt) { box.classList.add('hide'); return; } t.innerHTML = txt; box.classList.remove('hide'); }
+let actx = null;
+function beep(f, d, type){ try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(.18, actx.currentTime); g.gain.exponentialRampToValueAtTime(.001, actx.currentTime + (d || .15));
+  o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + (d || .15)); } catch (e) {} }
+function ding(){ beep(880, .12); setTimeout(() => beep(1320, .22), 110); }
+function pick(group, attr, cb){
+  $(group).addEventListener('click', e => { const b = e.target.closest('.pk'); if (!b) return;
+    $(group).querySelectorAll('.pk').forEach(x => x.classList.toggle('on', x === b)); cb(b.dataset[attr]); });
+}
+
+/* ---------- steps ---------- */
+const STEPS = [['cam','📷 Camera'],['det','🕺 Pose finder'],['fit','🧍 Fit'],['star','⭐ Star'],['pose','🎯 Pose test'],['rep','🎞️ Report']];
+const done = {};
+let step = 'cam';
+function drawSteps(){
+  $('steps').innerHTML = STEPS.map(([k, t]) => `<button class="st ${k === step ? 'on' : ''} ${done[k] ? 'done' : ''}" data-k="${k}">${t}</button>`).join('');
+}
+function openStep(k){
+  step = k;
+  document.querySelectorAll('section[data-step]').forEach(s => {
+    const i = STEPS.findIndex(x => x[0] === s.dataset.step), j = STEPS.findIndex(x => x[0] === k);
+    s.classList.toggle('hide', i > j);
+  });
+  drawSteps(); renderReport();
+  const sec = document.querySelector(`section[data-step="${k}"]`);
+  if (sec && sec.scrollIntoView && window.innerWidth < 760) setTimeout(() => sec.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 50);
+}
+$('steps').addEventListener('click', e => { const b = e.target.closest('.st'); if (!b) return;
+  const i = STEPS.findIndex(x => x[0] === b.dataset.k), j = STEPS.findIndex(x => x[0] === step);
+  if (i <= j || done[STEPS[i - 1][0]]) openStep(b.dataset.k); else toast('Finish the step before first 🙂'); });
+function finish(k){ done[k] = true; const i = STEPS.findIndex(x => x[0] === k); if (STEPS[i + 1] && STEPS.findIndex(x => x[0] === step) <= i) openStep(STEPS[i + 1][0]); else drawSteps(); }
+
+/* ---------- camera ---------- */
+const vid = $('vid'), cv = $('cv'), ctx = cv.getContext('2d');
+let stream = null, face = 'user', mirror = true;
+pick('facePick', 'face', f => { face = f; mirror = f === 'user'; if (stream) startCam(); });
+const CAM_WHY = {
+  NotAllowedError: 'The camera was not allowed.',
+  SecurityError: 'The page is not allowed to use the camera.',
+  NotFoundError: 'No camera was found on this device.',
+  NotReadableError: 'The camera is busy (another app may be using it).',
+  OverconstrainedError: 'This camera can’t do the picture size asked for.',
+  AbortError: 'The camera stopped while starting.',
+  NoMediaDevices: 'This browser/page has no camera access at all.'
+};
+async function startCam(){
+  busy(true, 'Turning on the camera…', '📷');
+  try {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { const er = new Error('navigator.mediaDevices missing'); er.name = 'NoMediaDevices'; throw er; }
+    stream = await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: face, width: {ideal: 640}, height: {ideal: 480}}});
+    vid.srcObject = stream;
+    await vid.play().catch(() => {});
+    await new Promise(r => { if (vid.videoWidth) r(); else vid.onloadedmetadata = () => r(); setTimeout(r, 3000); });
+    cv.width = vid.videoWidth || 640; cv.height = vid.videoHeight || 480;
+    $('stage').style.aspectRatio = cv.width + '/' + cv.height;
+    $('empty').classList.add('hide');
+    R.camera = 'works ✅'; R.cameraError = ''; R.video = cv.width + '×' + cv.height + (face === 'user' ? ' front' : ' back');
+    res('camRes', 'good', `✅ Camera works (${R.video}).`);
+    $('btnCam').textContent = '🔄 Restart camera';
+    finish('cam');
+    if (!det) setTimeout(loadDet, 50);
+  } catch (e) {
+    const name = e && e.name || 'Error';
+    R.camera = 'blocked ❌'; R.cameraError = name + (e && e.message ? ': ' + e.message : '');
+    let why = CAM_WHY[name] || 'The camera could not start.';
+    let plan = '';
+    if (inFrame && (name === 'NotAllowedError' || name === 'SecurityError' || name === 'NoMediaDevices') && R.framePolicy !== 'allowed') {
+      why = 'The app’s frame (Google Apps Script) does not let pages use the camera.';
+      plan = '<br><br>➡️ <b>Plan B needed:</b> open the test as its own page (GitHub Pages). Copy the report below and send it to Claude.';
+    } else if (name === 'NotAllowedError') {
+      plan = '<br><br>Tap the 🔒 / ⓘ next to the web address → Camera → Allow, then try again.';
+    }
+    res('camRes', 'bad', `❌ ${why}${plan}<br><small>${esc(R.cameraError)}</small>`);
+    openStep('cam'); document.querySelector('section[data-step="rep"]').classList.remove('hide');
+  }
+  busy(false); renderReport();
+}
+$('btnCam').onclick = startCam;
+
+/* ---------- detector ---------- */
+let det = null, detLoading = false;
+async function loadDet(){
+  if (det || detLoading) return; detLoading = true;
+  busy(true, 'Loading the pose finder… (first time ~6 MB)', '🕺');
+  const t0 = performance.now();
+  try {
+    const mod = await import(LIB + '/vision_bundle.mjs');
+    const files = await mod.FilesetResolver.forVisionTasks(LIB + '/wasm');
+    const opts = d => ({baseOptions: {modelAssetPath: MODEL, delegate: d}, runningMode: 'VIDEO', numPoses: 4,
+      minPoseDetectionConfidence: .5, minPosePresenceConfidence: .5, minTrackingConfidence: .5});
+    try { det = await mod.PoseLandmarker.createFromOptions(files, opts('GPU')); R.delegate = 'GPU'; }
+    catch (e) { det = await mod.PoseLandmarker.createFromOptions(files, opts('CPU')); R.delegate = 'CPU'; }
+    R.detector = 'works ✅'; R.detectorMs = Math.round(performance.now() - t0) + ' ms';
+    res('detRes', 'good', `✅ Pose finder ready in ${(R.detectorMs)} (${R.delegate}). Step into the picture!`);
+    finish('det');
+  } catch (e) {
+    R.detector = 'failed ❌ ' + (e && (e.message || e.name) || e);
+    res('detRes', 'bad', `❌ The pose finder could not load.<br><small>${esc(R.detector)}</small>`);
+  }
+  detLoading = false; busy(false); renderReport();
+}
+$('btnDet').onclick = loadDet;
+
+/* ---------- pose maths (shared with the game later) ---------- */
+// landmark ids (MediaPipe): 0 nose, 11/12 shoulders, 13/14 elbows, 15/16 wrists, 23/24 hips, 25/26 knees, 27/28 ankles. "l" = the PERSON'S left.
+// Angles in degrees in camera space: 0 = towards the person's left, 90 = up, 180 = person's right, 270 = down.
+const PARTS = [ // key, from, to, weight, leg?
+  ['lu', 11, 13, 1.2, 0], ['ll', 13, 15, 1, 0], ['ru', 12, 14, 1.2, 0], ['rl', 14, 16, 1, 0],
+  ['lt', 23, 25, 1, 1], ['ls', 25, 27, .8, 1], ['rt', 24, 26, 1, 1], ['rs', 26, 28, .8, 1]];
+const STRICT = {rough: {full: 20, zero: 60, lock: 70}, close: {full: 10, zero: 40, lock: 85}};
+// % = weighted average of the parts × (0.6 + 0.4 × worst part) — one arm way off pulls the score down, so similar poses don't pass as each other
+const POSES = [
+  {id: 'star', e: '⭐', n: 'Star',          a: {lu: 45, ll: 45, ru: 135, rl: 135, lt: 305, ls: 305, rt: 235, rs: 235}},
+  {id: 'yup',  e: '🙆', n: 'Arms up (Y)',   a: {lu: 70, ll: 70, ru: 110, rl: 110, lt: 270, ls: 270, rt: 270, rs: 270}},
+  {id: 'tee',  e: '✈️', n: 'Airplane (T)',  a: {lu: 0, ll: 0, ru: 180, rl: 180, lt: 270, ls: 270, rt: 270, rs: 270}},
+  {id: 'hips', e: '💁', n: 'Hands on hips', a: {lu: 300, ll: 210, ru: 240, rl: 330, lt: 270, ls: 270, rt: 270, rs: 270}}];
+const VIS = .5;
+function vis(p){ return p && (p.visibility == null || p.visibility >= VIS) && p.x > -0.02 && p.x < 1.02 && p.y > -0.02 && p.y < 1.02; }
+function angOf(lm, i, j, W, H){ const a = lm[i], b = lm[j]; if (!vis(a) || !vis(b)) return null;
+  let d = Math.atan2(-(b.y - a.y) * H, (b.x - a.x) * W) * 180 / Math.PI; return (d + 360) % 360; }
+function angles(lm, W, H){ const o = {}; PARTS.forEach(([k, i, j]) => o[k] = angOf(lm, i, j, W, H)); return o; }
+function adiff(a, b){ const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+function score(lm, pose, strict, upper, W, H){
+  const S = STRICT[strict] || STRICT.rough, A = angles(lm, W, H);
+  let sum = 0, wt = 0, worst = 1; const parts = {};
+  PARTS.forEach(([k, , , w, leg]) => {
+    if (upper && leg) return;
+    wt += w;
+    if (A[k] == null) { parts[k] = null; worst = 0; return; } // missing part counts as 0
+    const d = adiff(A[k], pose.a[k]);
+    const s = d <= S.full ? 1 : d >= S.zero ? 0 : 1 - (d - S.full) / (S.zero - S.full);
+    parts[k] = s; sum += s * w; worst = Math.min(worst, s);
+  });
+  return {pct: wt ? Math.round(sum / wt * (.6 + .4 * worst) * 100) : 0, parts};
+}
+// build fake landmarks from a pose's angles (for tests + the little target picture)
+function makeLandmarks(a, o){
+  o = o || {}; const W = o.W || 640, H = o.H || 480, cx = o.cx == null ? .5 : o.cx, s = o.s || 1;
+  const L = Array.from({length: 33}, () => ({x: cx, y: .5, z: 0, visibility: .99}));
+  const px = 1 / W, py = 1 / H, up = 90 * s, sh = 34 * s, hp = 20 * s, ua = 52 * s, fa = 48 * s, th = 70 * s, sn = 66 * s;
+  const hipY = (o.hipY || .62);
+  const P = (x, y) => ({x, y, z: 0, visibility: .99});
+  const put = (i, x, y) => { L[i] = P(x, y); };
+  const go = (p, ang, len) => P(p.x + Math.cos(ang * Math.PI / 180) * len * px, p.y - Math.sin(ang * Math.PI / 180) * len * py);
+  put(23, cx + hp * px, hipY); put(24, cx - hp * px, hipY);
+  put(11, cx + sh * px, hipY - up * py); put(12, cx - sh * px, hipY - up * py);
+  put(0, cx, hipY - (up + 40 * s) * py);
+  L[13] = go(L[11], a.lu, ua); L[15] = go(L[13], a.ll, fa); L[14] = go(L[12], a.ru, ua); L[16] = go(L[14], a.rl, fa);
+  L[25] = go(L[23], a.lt, th); L[27] = go(L[25], a.ls, sn); L[26] = go(L[24], a.rt, th); L[28] = go(L[26], a.rs, sn);
+  return L;
+}
+function drawTarget(pose){
+  const c = $('tgt'), g = c.getContext('2d'), W = c.width, H = c.height;
+  g.clearRect(0, 0, W, H);
+  const lm = makeLandmarks(pose.a, {W: 640, H: 480, s: .7, hipY: .55});
+  // mirrored like the camera view, scaled into the little box
+  const X = p => (mirror ? (1 - p.x) : p.x) * 640, Y = p => p.y * 480;
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28].forEach(i => { x0 = Math.min(x0, X(lm[i])); x1 = Math.max(x1, X(lm[i])); y0 = Math.min(y0, Y(lm[i])); y1 = Math.max(y1, Y(lm[i])); });
+  y0 -= 18; const k = Math.min((W - 16) / (x1 - x0), (H - 16) / (y1 - y0));
+  const T = p => [8 + (X(p) - x0) * k + ((W - 16) - (x1 - x0) * k) / 2, 8 + (Y(p) - y0) * k + ((H - 16) - (y1 - y0) * k) / 2];
+  g.lineCap = 'round'; g.lineWidth = 6; g.strokeStyle = '#ffd23f';
+  const line = (i, j) => { const a = T(lm[i]), b = T(lm[j]); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); };
+  [[11, 12], [23, 24], [11, 23], [12, 24], [11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [24, 26], [26, 28]].forEach(p => line(p[0], p[1]));
+  const h = T(lm[0]); g.fillStyle = '#ff4fa3'; g.beginPath(); g.arc(h[0], h[1] + 4, 9 * k / .9, 0, 7); g.fill();
+}
+
+/* ---------- live loop ---------- */
+let lastVT = -1, people = [], frames = 0, fpsT = performance.now(), detSum = 0, detN = 0;
+let stillHist = [], stillVal = null;
+const BONES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28]];
+const PCOL = ['#ff4fa3', '#59c8ff', '#ffd23f', '#3ef0c0'];
+function mainPerson(list){
+  let best = null, bs = -1;
+  list.forEach(lm => { let x0 = 1, x1 = 0, y0 = 1, y1 = 0; lm.forEach(p => { if (!vis(p)) return; x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); });
+    const s = Math.max(0, x1 - x0) * Math.max(0, y1 - y0); if (s > bs) { bs = s; best = lm; } });
+  return best;
+}
+function brightness(){
+  try { const c = brightness.c || (brightness.c = document.createElement('canvas')); c.width = 32; c.height = 24;
+    const g = c.getContext('2d', {willReadFrequently: true}); g.drawImage(vid, 0, 0, 32, 24);
+    const d = g.getImageData(0, 0, 32, 24).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += .299 * d[i] + .587 * d[i + 1] + .114 * d[i + 2];
+    return s / (d.length / 4); } catch (e) { return 128; }
+}
+function stillness(lm){ // average movement per second of 12 body points, in torso lengths (0 = statue)
+  const now = performance.now(), pts = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+  const torso = Math.hypot((lm[11].x + lm[12].x - lm[23].x - lm[24].x) / 2 * cv.width, (lm[11].y + lm[12].y - lm[23].y - lm[24].y) / 2 * cv.height) || 1;
+  stillHist.push({t: now, p: pts.map(i => [lm[i].x * cv.width, lm[i].y * cv.height, vis(lm[i])])});
+  while (stillHist.length && now - stillHist[0].t > 600) stillHist.shift();
+  if (stillHist.length < 4) return null;
+  const a = stillHist[0], b = stillHist[stillHist.length - 1], dt = (b.t - a.t) / 1000 || 1;
+  let s = 0, n = 0; a.p.forEach((p, i) => { const q = b.p[i]; if (p[2] && q[2]) { s += Math.hypot(q[0] - p[0], q[1] - p[1]); n++; } });
+  return n ? s / n / torso / dt : null;
+}
+function loop(){
+  requestAnimationFrame(loop);
+  const fake = window.PP_FAKE; // harness: list of landmark sets
+  const have = vid.readyState >= 2 && stream;
+  if (!have && !fake) return;
+  const W = cv.width, H = cv.height;
+  if (fake) people = typeof fake === 'function' ? fake() : fake;
+  else if (det && vid.currentTime !== lastVT) {
+    lastVT = vid.currentTime;
+    const t0 = performance.now();
+    try { const r = det.detectForVideo(vid, t0); people = (r && r.landmarks) || []; } catch (e) { people = []; }
+    detSum += performance.now() - t0; detN++;
+  }
+  frames++;
+  const now = performance.now();
+  if (now - fpsT > 1000) { const f = Math.round(frames * 1000 / (now - fpsT)); $('mFps').textContent = f; R.fps = f;
+    if (detN) R.detectMs = Math.round(detSum / detN) + ' ms'; frames = 0; detSum = 0; detN = 0; fpsT = now; }
+  // draw camera
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (have) { ctx.save(); if (mirror) { ctx.translate(W, 0); ctx.scale(-1, 1); } ctx.drawImage(vid, 0, 0, W, H); ctx.restore(); }
+  else { ctx.fillStyle = '#0b0720'; ctx.fillRect(0, 0, W, H); }
+  $('mPeople').textContent = people.length; R.peopleMax = Math.max(R.peopleMax, people.length);
+  const me = mainPerson(people);
+  const sc = me && step === 'pose' ? score(me, curPose, strict, bodyMode === 'upper', W, H) : null;
+  people.forEach((lm, n) => drawSkel(lm, lm === me ? PCOL[0] : PCOL[(n % 3) + 1], lm === me, sc && lm === me ? sc.parts : null));
+  if (me) { const s = stillness(me); if (s != null) { stillVal = stillVal == null ? s : stillVal * .7 + s * .3;
+      $('mStill').textContent = stillVal < .15 ? '🗿 still' : stillVal < .45 ? '🙂 a bit' : '💃 moving'; R.still = stillVal.toFixed(2); } }
+  else { stillHist = []; $('mStill').textContent = '–'; }
+  if (step === 'fit') fitTick(me, W, H);
+  else if (step === 'star') starTick(me, W, H);
+  else if (step === 'pose') poseTick(me, sc);
+}
+function drawSkel(lm, col, main, parts){
+  const W = cv.width, H = cv.height, X = p => (mirror ? 1 - p.x : p.x) * W, Y = p => p.y * H;
+  ctx.lineCap = 'round'; ctx.lineWidth = main ? Math.max(4, W / 110) : 3;
+  const partOf = {'11-13': 'lu', '13-15': 'll', '12-14': 'ru', '14-16': 'rl', '23-25': 'lt', '25-27': 'ls', '24-26': 'rt', '26-28': 'rs'};
+  BONES.forEach(([i, j]) => { const a = lm[i], b = lm[j]; if (!vis(a) || !vis(b)) return;
+    let c = col; const k = partOf[i + '-' + j];
+    if (parts && k && parts[k] != null) c = parts[k] > .75 ? '#3ef0a0' : parts[k] > .35 ? '#ffd23f' : '#ff6b6b';
+    ctx.strokeStyle = c; ctx.beginPath(); ctx.moveTo(X(a), Y(a)); ctx.lineTo(X(b), Y(b)); ctx.stroke(); });
+  ctx.fillStyle = '#fff';
+  [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28].forEach(i => { const p = lm[i]; if (!vis(p)) return; ctx.beginPath(); ctx.arc(X(p), Y(p), main ? 4 : 3, 0, 7); ctx.fill(); });
+}
+
+/* ---------- 3 fit check ---------- */
+let bodyMode = 'full', fitOkSince = 0, fitStart = 0, lastLight = 128, lightT = 0;
+pick('modePick', 'mode', m => { bodyMode = m; R.bodyMode = m; fitOkSince = 0; fitTick(null); });
+function fitTick(me, W, H){
+  if (!fitStart) fitStart = performance.now();
+  const now = performance.now();
+  if (now - lightT > 700 && stream) { lastLight = brightness(); lightT = now; }
+  const C = [];
+  const found = !!me; C.push(['found', '🙂', 'I can see you', found]);
+  if (bodyMode === 'full') {
+    const head = found && vis(me[0]) && me[0].y > .02;
+    const feet = found && vis(me[27]) && vis(me[28]) && me[27].y < .985 && me[28].y < .985;
+    let hgt = 0; if (found && vis(me[0]) && (vis(me[27]) || vis(me[28]))) hgt = Math.max(me[27].y, me[28].y) - me[0].y;
+    const size = hgt > .5 && hgt < .93;
+    C.push(['head', '🧢', 'Head in the picture', head]);
+    C.push(['feet', '👟', 'Feet in the picture', feet]);
+    C.push(['size', '📏', hgt && hgt <= .5 ? 'Come a bit closer' : (hgt >= .93 ? 'Step back a little' : 'Good size'), size]);
+  } else {
+    const ok = found && vis(me[0]) && vis(me[11]) && vis(me[12]);
+    const hands = found && vis(me[15]) && vis(me[16]);
+    const sw = found && ok ? Math.abs(me[11].x - me[12].x) : 0;
+    C.push(['head', '🧢', 'Head + shoulders in the picture', ok]);
+    C.push(['hands', '🙌', 'Both hands in the picture', hands]);
+    C.push(['size', '📏', sw && sw < .14 ? 'Come a bit closer' : (sw > .5 ? 'Step back a little' : 'Good size'), sw >= .14 && sw <= .5]);
+  }
+  const mid = found ? (bodyMode === 'upper' ? (me[11].x + me[12].x) / 2 : (me[23].x + me[24].x) / 2) : .5;
+  C.push(['mid', '↔️', 'In the middle', found && mid > .25 && mid < .75]);
+  C.push(['light', '💡', lastLight < 55 ? 'Too dark — turn on a light' : 'Bright enough', lastLight >= 55]);
+  $('fitChecks').innerHTML = C.map(c => `<li class="${c[3] ? 'ok' : ''}"><span class="ic">${c[3] ? '✅' : c[1]}</span>${c[2]}</li>`).join('');
+  const all = C.every(c => c[3]);
+  if (bodyMode === 'full' && !all && now - fitStart > 10000 && !(found && C[2][3])) {
+    res('fitRes', 'info', '🏠 Small room? Tap <b>Upper body only</b> — the game will use arm poses.');
+  }
+  if (all) { if (!fitOkSince) fitOkSince = now; ov('Top', '✅ Perfect — hold still…');
+    if (now - fitOkSince > 1000) { R.fit = 'ok (' + bodyMode + ')'; res('fitRes', 'good', '✅ You fit in the picture!'); ov('Top', ''); ding(); finish('fit'); starStart = 0; } }
+  else { fitOkSince = 0; const miss = C.find(c => !c[3]); ov('Top', miss ? miss[1] + ' ' + miss[2] : ''); }
+}
+
+/* ---------- 4 star calibration ---------- */
+let starStart = 0, starOkSince = 0;
+const CALIB_KEY = () => 'sp_pose_calib:' + (PLAYER || 'device');
+function starTick(me, W, H){
+  const sc = me ? score(me, POSES[0], 'rough', bodyMode === 'upper', W, H) : {pct: 0};
+  $('starRing').style.setProperty('--p', Math.min(1, sc.pct / 100)); $('starTxt').textContent = sc.pct + '%';
+  ov('Top', '⭐ Make a big star!');
+  const now = performance.now();
+  if (sc.pct >= 70) { if (!starOkSince) starOkSince = now; const held = (now - starOkSince) / 2000;
+    ov('Bot', '⏳ Hold it… ' + Math.max(0, 2 - (now - starOkSince) / 1000).toFixed(1) + ' s');
+    if (held >= 1) saveCalib(me, W, H, sc.pct); }
+  else { starOkSince = 0; ov('Bot', ''); }
+}
+function saveCalib(me, W, H, pct){
+  const d = (i, j) => Math.hypot((me[i].x - me[j].x) * W, (me[i].y - me[j].y) * H) / H;
+  const c = {mode: bodyMode, shoulder: +d(11, 12).toFixed(3), torso: +(((d(11, 23) + d(12, 24)) / 2)).toFixed(3),
+    span: +d(15, 16).toFixed(3), legs: bodyMode === 'full' && vis(me[27]) ? +(((d(23, 27) + d(24, 28)) / 2)).toFixed(3) : null, pct, date: new Date().toISOString().slice(0, 10)};
+  try { localStorage.setItem(CALIB_KEY(), JSON.stringify(c)); } catch (e) {}
+  R.star = pct + '% · saved'; ov('Top', ''); ov('Bot', ''); ding(); flash();
+  res('starRes', 'good', `✅ Got your size! (${pct}%) The game remembers it on this device.`);
+  finish('star'); setPose(POSES[0].id);
+}
+$('btnStarSkip').onclick = () => { R.star = 'skipped'; ov('Top', ''); ov('Bot', ''); finish('star'); setPose(POSES[0].id); };
+
+/* ---------- 5 pose test ---------- */
+let curPose = POSES[0], strict = 'rough', smooth = 0, lockSince = 0, locked = false, capturing = false;
+$('posePick').innerHTML = POSES.map((p, i) => `<button class="pk ${i ? '' : 'on'}" data-pose="${p.id}">${p.e} ${p.n}</button>`).join('');
+pick('posePick', 'pose', id => setPose(id));
+pick('strictPick', 'strict', s => { strict = s; locked = false; lockSince = 0; });
+function setPose(id){ curPose = POSES.find(p => p.id === id) || POSES[0]; locked = false; lockSince = 0; smooth = 0; drawTarget(curPose); }
+function poseTick(me, sc){
+  $('tgt').classList.remove('hide'); $('pct').classList.remove('hide');
+  const p = sc ? sc.pct : 0; smooth = smooth * .65 + p * .35; const v = Math.round(smooth);
+  $('pct').textContent = v + '%'; $('pct').style.borderColor = v >= STRICT[strict].lock ? '#3ef0a0' : v >= 45 ? '#ffd23f' : '#ff6b6b';
+  const best = R.poses[curPose.id] || 0; if (v > best) R.poses[curPose.id] = v;
+  if (capturing) return;
+  const now = performance.now();
+  if (!locked && v >= STRICT[strict].lock) { if (!lockSince) lockSince = now;
+    if (now - lockSince > 500) { locked = true; ding(); ov('Top', '✅ ' + curPose.e + ' ' + curPose.n + ' — ' + v + '%!'); setTimeout(() => ov('Top', ''), 1400); snap(v); finish('pose'); } }
+  else if (v < STRICT[strict].lock - 10) { lockSince = 0; if (locked) locked = false; }
+}
+function flash(){ const f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+const shots = [];
+function snap(pct){
+  const c = document.createElement('canvas'); c.width = 360; c.height = Math.round(360 * cv.height / cv.width);
+  const g = c.getContext('2d');
+  if (stream) { g.save(); if (mirror) { g.translate(c.width, 0); g.scale(-1, 1); } g.drawImage(vid, 0, 0, c.width, c.height); g.restore(); }
+  else { g.fillStyle = '#2b1f6b'; g.fillRect(0, 0, c.width, c.height); g.font = '80px serif'; g.textAlign = 'center'; g.fillText(curPose.e, c.width / 2, c.height / 2 + 28); }
+  g.fillStyle = '#170f3acc'; g.fillRect(0, c.height - 34, c.width, 34); g.fillStyle = '#fff'; g.font = 'bold 20px sans-serif'; g.textAlign = 'left';
+  g.fillText(curPose.e + ' ' + curPose.n + ' · ' + pct + '%', 10, c.height - 11);
+  shots.push({c, pct, pose: curPose}); if (shots.length > 4) shots.shift();
+  $('strip').innerHTML = ''; shots.forEach(s => { const im = new Image(); im.src = s.c.toDataURL('image/jpeg', .8); im.alt = s.pose.n; $('strip').appendChild(im); });
+  flash(); beep(1500, .06, 'square');
+}
+$('btnCap').onclick = async () => {
+  if (capturing) return; capturing = true; $('btnCap').disabled = true;
+  for (const n of [3, 2, 1]) { ov('Mid', n); beep(520 + (3 - n) * 120, .12); await new Promise(r => setTimeout(r, 800)); }
+  ov('Mid', '📸'); const v = Math.round(smooth); snap(v); R.capture = curPose.n + ' ' + v + '%'; beep(1200, .2);
+  await new Promise(r => setTimeout(r, 500)); ov('Mid', '');
+  res('poseRes', v >= STRICT[strict].lock ? 'good' : 'info', `📸 ${curPose.e} ${curPose.n}: <b>${v}%</b> ${v >= STRICT[strict].lock ? '— matched!' : '— keep trying!'}`);
+  capturing = false; $('btnCap').disabled = false; finish('pose'); renderReport();
+};
+
+/* ---------- 6 photo strip + report ---------- */
+function buildStrip(){
+  const list = shots.length ? shots : [{c: null, pct: 0, pose: {e: '📷', n: 'Test'}}];
+  const w = 480, fh = Math.round(w * 3 / 4), pad = 16, top = 64;
+  const c = document.createElement('canvas'); c.width = w + pad * 2; c.height = top + list.length * (fh + pad) + 30;
+  const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, c.height); gr.addColorStop(0, '#ff4fa3'); gr.addColorStop(1, '#3b2391'); g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = '#fff'; g.font = 'bold 30px sans-serif'; g.textAlign = 'center'; g.fillText('📷 Pose Party ★', c.width / 2, 42);
+  list.forEach((s, i) => { const y = top + i * (fh + pad);
+    g.fillStyle = '#170f3a'; g.fillRect(pad, y, w, fh);
+    if (s.c) g.drawImage(s.c, pad, y, w, fh); else { g.font = '120px serif'; g.fillText('📷', c.width / 2, y + fh / 2 + 40); } });
+  g.font = '16px sans-serif'; g.fillStyle = '#fff'; g.fillText(new Date().toLocaleDateString() + (PLAYER ? ' · ' + PLAYER : ''), c.width / 2, c.height - 10);
+  return c;
+}
+$('btnDl').onclick = () => {
+  busy(true, 'Making your photo strip…', '🎞️');
+  const c = buildStrip();
+  const url = c.toDataURL('image/png');
+  $('stripImg').src = url; $('stripImg').classList.remove('hide'); $('stripTip').classList.toggle('hide', !/iPad|iPhone/.test(R.device));
+  try {
+    c.toBlob(b => {
+      try { const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = 'pose-party-test.png';
+        document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 4000); R.download = 'tried — waiting for answer'; }
+      catch (e) { R.download = 'error: ' + e.message; }
+      busy(false); $('dlAsk').classList.remove('hide'); renderReport();
+    }, 'image/png');
+  } catch (e) { R.download = 'error: ' + e.message; busy(false); $('dlAsk').classList.remove('hide'); renderReport(); }
+};
+$('dlYes').onclick = () => { R.download = 'works ✅'; $('dlAsk').classList.add('hide'); done.rep = true; drawSteps(); renderReport(); toast('🎉 Great — downloads work here'); };
+$('dlNo').onclick = () => { R.download = 'blocked ❌ (press-and-hold picture instead)'; $('dlAsk').classList.add('hide'); $('stripImg').classList.remove('hide'); $('stripTip').classList.remove('hide'); renderReport(); };
+
+const REP_ROWS = [['where', '📍 Where'], ['device', '📱 Device'], ['browser', '🌐 Browser'], ['screen', '🖥️ Screen'], ['secure', '🔒 https'],
+  ['framePolicy', '🧱 Frame camera'], ['camera', '📷 Camera'], ['cameraError', '⚠️ Camera error'], ['video', '🎥 Picture'],
+  ['detector', '🕺 Pose finder'], ['detectorMs', '⏱️ Load time'], ['delegate', '⚙️ Runs on'], ['fps', '🎞️ Pictures/sec'], ['detectMs', '🧠 Find time'],
+  ['peopleMax', '👥 Most people'], ['bodyMode', '🧍 Body mode'], ['fit', '✅ Fit check'], ['star', '⭐ Star'], ['poses', '🎯 Best %'],
+  ['capture', '📸 3-2-1'], ['still', '🗿 Still-meter'], ['download', '⬇️ Download']];
+function repVal(k){ const v = R[k]; if (k === 'poses') { const s = Object.keys(v).map(id => { const p = POSES.find(x => x.id === id); return p.e + ' ' + v[id] + '%'; }).join('  '); return s || '–'; } return v === '' || v == null ? '–' : v; }
+function renderReport(){ $('repTable').innerHTML = REP_ROWS.filter(([k]) => k !== 'cameraError' || R.cameraError).map(([k, t]) => `<tr><td>${t}</td><td>${esc(repVal(k))}</td></tr>`).join(''); }
+function reportText(){ return '📷 Pose Party camera test — ' + new Date().toLocaleString() + (PLAYER ? ' — ' + PLAYER : '') + '\n' +
+  REP_ROWS.filter(([k]) => k !== 'cameraError' || R.cameraError).map(([k, t]) => t + ': ' + repVal(k)).join('\n'); }
+$('btnCopy').onclick = async () => {
+  const t = reportText(); let ok = false;
+  try { await navigator.clipboard.writeText(t); ok = true; } catch (e) {}
+  if (!ok) { const ta = $('repText'); ta.value = t; ta.classList.remove('hide'); ta.focus(); ta.select(); try { ok = document.execCommand('copy'); } catch (e) {} }
+  toast(ok ? '📋 Report copied — paste it to Claude' : '📋 Select the text below and copy it');
+  if (!ok) $('repText').classList.remove('hide');
+};
+if (inApp) {
+  $('btnSend').classList.remove('hide');
+  $('btnSend').onclick = () => {
+    const b = $('btnSend'); b.disabled = true; b.textContent = '📨 Sending…'; busy(true, 'Sending the report…', '📨');
+    const back = (ok, msg) => { busy(false); b.disabled = false; b.textContent = '📨 Send report'; toast(ok ? '📨 Sent — thank you!' : '❌ ' + msg); };
+    google.script.run.withSuccessHandler(() => back(true)).withFailureHandler(e => back(false, e && e.message || 'Could not send'))
+      .savePoseTest(PLAYER || '', reportText(), JSON.stringify(R));
+  };
+}
+
+/* ---------- start ---------- */
+window.PP = {R, POSES, STRICT, score, angles, makeLandmarks, adiff, openStep, setPose, get step(){ return step; }, get det(){ return det; }, get smooth(){ return smooth; }, shots, reportText, buildStrip};
+readPlayer(); chips(); drawSteps(); openStep('cam'); renderReport();
+requestAnimationFrame(loop);
+window.addEventListener('resize', () => { R.screen = innerWidth + '×' + innerHeight; });
+})();
+</script>
+</body>
+</html>
+<!-- END OF PoseCam.html -->
