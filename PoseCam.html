@@ -234,6 +234,7 @@ function deviceInfo(){
   if (/Edg\//.test(ua)) br = 'Edge'; else if (/SamsungBrowser/.test(ua)) br = 'Samsung Internet';
   else if (/CriOS|Chrome\//.test(ua)) br = 'Chrome'; else if (/FxiOS|Firefox\//.test(ua)) br = 'Firefox';
   else if (/Safari\//.test(ua)) br = 'Safari';
+  else if (/iPhone|iPad|Macintosh/.test(ua) && /AppleWebKit/.test(ua)) br = 'iOS app view (not Safari)';
   const m = ua.match(/(?:Chrome|CriOS|Version|Firefox|FxiOS|Edg)\/(\d+)/);
   return {dev, br: br + (m ? ' ' + m[1] : ''), w: innerWidth, h: innerHeight};
 }
@@ -245,8 +246,14 @@ function policyCamera(){
   return 'unknown';
 }
 const D = deviceInfo();
+function frameHost(){ // which site holds this page in its frame
+  if (!inFrame) return '';
+  try { if (location.ancestorOrigins && location.ancestorOrigins.length) return new URL(location.ancestorOrigins[location.ancestorOrigins.length - 1]).host; } catch (e) {}
+  try { if (document.referrer) return new URL(document.referrer).host; } catch (e) {}
+  return 'unknown site';
+}
 const R = { // the report
-  where: inApp ? 'Inside the app' : (inFrame ? 'Inside a frame' : 'Own page'),
+  where: inApp ? 'Inside the app' : (inFrame ? 'Inside a frame (' + frameHost() + ')' : 'Own page'),
   device: D.dev, browser: D.br, screen: D.w + '×' + D.h,
   secure: window.isSecureContext ? 'yes' : 'NO', framePolicy: policyCamera(),
   camera: 'not tried', cameraError: '', video: '', detector: 'not loaded', detectorMs: '', delegate: '',
@@ -344,7 +351,7 @@ async function startCam(){
     let why = CAM_WHY[name] || 'The camera could not start.';
     let plan = '';
     if (inFrame && (name === 'NotAllowedError' || name === 'SecurityError' || name === 'NoMediaDevices') && R.framePolicy !== 'allowed') {
-      why = 'The app’s frame (Google Apps Script) does not let pages use the camera.';
+      why = inApp ? 'The app’s frame (Google Apps Script) does not let pages use the camera.' : 'This page is shown inside another site’s frame (' + esc(frameHost()) + '), which does not let it use the camera.';
       plan = '<br><br>➡️ <b>Plan B needed:</b> open the test as its own page (GitHub Pages). Copy the report below and send it to Claude.';
     } else if (name === 'NotAllowedError') {
       plan = '<br><br>Tap the 🔒 / ⓘ next to the web address → Camera → Allow, then try again.';
