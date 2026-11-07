@@ -1,0 +1,79 @@
+<!-- index.html — 📷 Pose Party camera door (GitHub Pages: aowu-hub.github.io/pose-party/). Upload ONCE; the game itself lives in Apps Script (PoseParty.html) and is fetched from /exec with the one-time pass in the link. Only script.google.com /exec links are accepted. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pose Party</title>
+<style>
+html,body{margin:0;min-height:100%;background:#170f3a;color:#fff7fb;font:600 17px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif}
+.box{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 16px}
+.ico{font-size:72px;animation:d-pop 1s ease-in-out infinite}
+@keyframes d-pop{0%,100%{transform:scale(1) rotate(-6deg)}50%{transform:scale(1.15) rotate(6deg)}}
+.bar{width:220px;height:8px;background:#ffffff22;border-radius:9px;overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,#ffd23f,#ff4fa3);animation:d-slide 1.2s ease-in-out infinite}
+@keyframes d-slide{0%{transform:translateX(-110%)}100%{transform:translateX(360%)}}
+.err{background:#5a1d2c;color:#ffd5dc;border-radius:14px;padding:12px 16px;max-width:460px;margin-top:14px;display:none}
+a.btn{display:inline-block;margin-top:14px;background:linear-gradient(180deg,#ff6bb5,#e23d8d);color:#fff;text-decoration:none;border-radius:14px;padding:12px 20px;font-weight:800}
+</style>
+</head>
+<body>
+<div class="box" id="box">
+  <div class="ico">📷</div>
+  <div id="msg">Opening Pose Party…</div>
+  <div class="bar"><i></i></div>
+  <div class="err" id="err"></div>
+</div>
+<script>
+(function(){
+  'use strict';
+  var q = new URLSearchParams(location.search);
+  var APP = q.get('app') || '', PASS = q.get('pass') || '', PLAYER = q.get('player') || '', SS = q.get('ss') || '', DM = q.get('dm') || '';
+  var OK_APP = /^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[A-Za-z0-9_-]{20,}\/(exec|dev)$/;
+  var testApp = window.PP_DOOR_TEST_APP;   // harness only
+  function fail(text, withBack){
+    document.getElementById('msg').textContent = '😕 Pose Party could not open';
+    var e = document.getElementById('err'); e.style.display = 'block'; e.textContent = text;
+    document.querySelector('.bar').style.display = 'none';
+    if (withBack && (OK_APP.test(APP) || (testApp && APP === testApp))) { var a = document.createElement('a'); a.className = 'btn'; a.textContent = '🏠 Back to the Gameroom';
+      a.href = APP + '?page=gameroom&player=' + encodeURIComponent(PLAYER); document.getElementById('box').appendChild(a); }
+  }
+  if (!(OK_APP.test(APP) || (testApp && APP === testApp)) || !/^[0-9a-f]{20,80}$/i.test(PASS)) {
+    fail('Open Pose Party from the 🎮 Gameroom in the STEAM Playground app.', false); return;
+  }
+  // google.script.run for this page: every call goes to the app's doPost with the pass.
+  var shim = '(' + function (APP, PASS, PLAYER) {
+    function call(fn, args){
+      return fetch(APP, {method: 'POST', body: JSON.stringify({pass: PASS, fn: fn, args: args}), redirect: 'follow'})
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (!j || !j.ok) { var er = new Error(j && (j.message || j.error) || 'The app did not answer.'); er.code = j && j.error; throw er; } return j.result; });
+    }
+    function runner(ok, bad, user){
+      return new Proxy({}, {get: function (_, k) {
+        if (k === 'withSuccessHandler') return function (h) { return runner(h, bad, user); };
+        if (k === 'withFailureHandler') return function (h) { return runner(ok, h, user); };
+        if (k === 'withUserObject') return function (o) { return runner(ok, bad, o); };
+        if (typeof k !== 'string' || k === 'then') return undefined;
+        return function () { var args = Array.prototype.slice.call(arguments);
+          call(k, args).then(function (r) { if (ok) ok(r, user); }, function (e) { if (bad) bad(e, user); else console.warn('[pose door]', k, e); }); };
+      }});
+    }
+    window.google = {script: {
+      get run(){ return runner(null, null, undefined); },
+      url: {getLocation: function (cb) { cb({parameter: {player: PLAYER, page: 'poseparty'}, parameters: {player: [PLAYER], page: ['poseparty']}, hash: ''}); }},
+      host: {close: function () {}, setHeight: function () {}, setWidth: function () {}, origin: location.origin, editor: {focus: function () {}}}
+    }};
+    window.POSE_DOOR = {app: APP, pass: PASS};
+  } + ')(' + JSON.stringify(APP) + ',' + JSON.stringify(PASS) + ',' + JSON.stringify(PLAYER) + ');';
+  shim = '<script>' + shim.replace(/<\//g, '<\\/') + '<\/script>';
+  var url = APP + '?api=posegame&pass=' + encodeURIComponent(PASS) + (SS ? '&ss=' + encodeURIComponent(SS) + '&dm=' + encodeURIComponent(DM) : '');
+  fetch(url, {redirect: 'follow'}).then(function (r) { return r.json(); }).then(function (j) {
+    if (!j || !j.ok || !j.html) { fail((j && j.message) || 'The app said: ' + (j && j.error || 'no answer') + '. Open Pose Party from the Gameroom again.', true); return; }
+    var html = String(j.html), m = html.match(/<head[^>]*>/i);
+    html = m ? html.replace(m[0], m[0] + shim) : shim + html;
+    document.open(); document.write(html); document.close();
+  }).catch(function (e) { fail('Could not reach the app (' + (e && e.message || e) + '). Check the internet and try again.', true); });
+})();
+</script>
+</body>
+</html>
